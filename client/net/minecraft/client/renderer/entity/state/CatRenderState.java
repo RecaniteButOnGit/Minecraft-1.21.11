@@ -1,0 +1,18 @@
+package net.minecraft.client.renderer.entity.state;
+
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.DyeColor;
+import org.jspecify.annotations.Nullable;
+
+public class CatRenderState extends FelineRenderState {
+   private static final Identifier DEFAULT_TEXTURE = Identifier.withDefaultNamespace("textures/entity/cat/tabby.png");
+   public Identifier texture;
+   public boolean isLyingOnTopOfSleepingPlayer;
+   @Nullable
+   public DyeColor collarColor;
+
+   public CatRenderState() {
+      super();
+      this.texture = DEFAULT_TEXTURE;
+   }
+}

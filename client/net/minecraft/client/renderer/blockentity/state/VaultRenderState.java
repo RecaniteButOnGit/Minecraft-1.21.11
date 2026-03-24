@@ -1,0 +1,14 @@
+package net.minecraft.client.renderer.blockentity.state;
+
+import net.minecraft.client.renderer.entity.state.ItemClusterRenderState;
+import org.jspecify.annotations.Nullable;
+
+public class VaultRenderState extends BlockEntityRenderState {
+   @Nullable
+   public ItemClusterRenderState displayItem;
+   public float spin;
+
+   public VaultRenderState() {
+      super();
+   }
+}

@@ -1,0 +1,202 @@
+package net.minecraft.client.gui.screens.options;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.SortedMap;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSelectionList;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
+import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.resources.language.LanguageInfo;
+import net.minecraft.client.resources.language.LanguageManager;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
+
+public class LanguageSelectScreen extends OptionsSubScreen {
+   private static final Component WARNING_LABEL = Component.translatable("options.languageAccuracyWarning").withColor(-4539718);
+   private static final int FOOTER_HEIGHT = 53;
+   private static final Component SEARCH_HINT;
+   private static final int SEARCH_BOX_HEIGHT = 15;
+   final LanguageManager languageManager;
+   private LanguageSelectScreen.LanguageSelectionList languageSelectionList;
+   @Nullable
+   private EditBox search;
+
+   public LanguageSelectScreen(Screen var1, Options var2, LanguageManager var3) {
+      super(var1, var2, Component.translatable("options.language.title"));
+      this.languageManager = var3;
+      this.layout.setFooterHeight(53);
+   }
+
+   protected void addTitle() {
+      LinearLayout var1 = (LinearLayout)this.layout.addToHeader(LinearLayout.vertical().spacing(4));
+      var1.defaultCellSetting().alignHorizontallyCenter();
+      var1.addChild(new StringWidget(this.title, this.font));
+      this.search = (EditBox)var1.addChild(new EditBox(this.font, 0, 0, 200, 15, Component.empty()));
+      this.search.setHint(SEARCH_HINT);
+      this.search.setResponder((var1x) -> {
+         if (this.languageSelectionList != null) {
+            this.languageSelectionList.filterEntries(var1x);
+         }
+
+      });
+      HeaderAndFooterLayout var10000 = this.layout;
+      Objects.requireNonNull(this.font);
+      var10000.setHeaderHeight((int)(12.0D + 9.0D + 15.0D));
+   }
+
+   protected void setInitialFocus() {
+      if (this.search != null) {
+         this.setInitialFocus(this.search);
+      } else {
+         super.setInitialFocus();
+      }
+
+   }
+
+   protected void addContents() {
+      this.languageSelectionList = (LanguageSelectScreen.LanguageSelectionList)this.layout.addToContents(new LanguageSelectScreen.LanguageSelectionList(this.minecraft));
+   }
+
+   protected void addOptions() {
+   }
+
+   protected void addFooter() {
+      LinearLayout var1 = ((LinearLayout)this.layout.addToFooter(LinearLayout.vertical())).spacing(8);
+      var1.defaultCellSetting().alignHorizontallyCenter();
+      var1.addChild(new StringWidget(WARNING_LABEL, this.font));
+      LinearLayout var2 = (LinearLayout)var1.addChild(LinearLayout.horizontal().spacing(8));
+      var2.addChild(Button.builder(Component.translatable("options.font"), (var1x) -> {
+         this.minecraft.setScreen(new FontOptionsScreen(this, this.options));
+      }).build());
+      var2.addChild(Button.builder(CommonComponents.GUI_DONE, (var1x) -> {
+         this.onDone();
+      }).build());
+   }
+
+   protected void repositionElements() {
+      super.repositionElements();
+      if (this.languageSelectionList != null) {
+         this.languageSelectionList.updateSize(this.width, this.layout);
+      }
+
+   }
+
+   void onDone() {
+      if (this.languageSelectionList != null) {
+         AbstractSelectionList.Entry var2 = this.languageSelectionList.getSelected();
+         if (var2 instanceof LanguageSelectScreen.LanguageSelectionList.Entry) {
+            LanguageSelectScreen.LanguageSelectionList.Entry var1 = (LanguageSelectScreen.LanguageSelectionList.Entry)var2;
+            if (!var1.code.equals(this.languageManager.getSelected())) {
+               this.languageManager.setSelected(var1.code);
+               this.options.languageCode = var1.code;
+               this.minecraft.reloadResourcePacks();
+            }
+         }
+      }
+
+      this.minecraft.setScreen(this.lastScreen);
+   }
+
+   protected boolean panoramaShouldSpin() {
+      return !(this.lastScreen instanceof AccessibilityOnboardingScreen);
+   }
+
+   static {
+      SEARCH_HINT = Component.translatable("gui.language.search").withStyle(EditBox.SEARCH_HINT_STYLE);
+   }
+
+   private class LanguageSelectionList extends ObjectSelectionList<LanguageSelectScreen.LanguageSelectionList.Entry> {
+      public LanguageSelectionList(final Minecraft param2) {
+         super(var2, LanguageSelectScreen.this.width, LanguageSelectScreen.this.height - 33 - 53, 33, 18);
+         String var3 = LanguageSelectScreen.this.languageManager.getSelected();
+         LanguageSelectScreen.this.languageManager.getLanguages().forEach((var2x, var3x) -> {
+            LanguageSelectScreen.LanguageSelectionList.Entry var4 = new LanguageSelectScreen.LanguageSelectionList.Entry(var2x, var3x);
+            this.addEntry(var4);
+            if (var3.equals(var2x)) {
+               this.setSelected(var4);
+            }
+
+         });
+         if (this.getSelected() != null) {
+            this.centerScrollOn((LanguageSelectScreen.LanguageSelectionList.Entry)this.getSelected());
+         }
+
+      }
+
+      void filterEntries(String var1) {
+         SortedMap var2 = LanguageSelectScreen.this.languageManager.getLanguages();
+         List var3 = var2.entrySet().stream().filter((var1x) -> {
+            return var1.isEmpty() || ((LanguageInfo)var1x.getValue()).name().toLowerCase(Locale.ROOT).contains(var1.toLowerCase(Locale.ROOT)) || ((LanguageInfo)var1x.getValue()).region().toLowerCase(Locale.ROOT).contains(var1.toLowerCase(Locale.ROOT));
+         }).map((var1x) -> {
+            return new LanguageSelectScreen.LanguageSelectionList.Entry((String)var1x.getKey(), (LanguageInfo)var1x.getValue());
+         }).toList();
+         this.replaceEntries(var3);
+         this.refreshScrollAmount();
+      }
+
+      public int getRowWidth() {
+         return super.getRowWidth() + 50;
+      }
+
+      public class Entry extends ObjectSelectionList.Entry<LanguageSelectScreen.LanguageSelectionList.Entry> {
+         final String code;
+         private final Component language;
+
+         public Entry(final String param2, final LanguageInfo param3) {
+            super();
+            this.code = var2;
+            this.language = var3.toComponent();
+         }
+
+         public void renderContent(GuiGraphics var1, int var2, int var3, boolean var4, float var5) {
+            Font var10001 = LanguageSelectScreen.this.font;
+            Component var10002 = this.language;
+            int var10003 = LanguageSelectionList.this.width / 2;
+            int var10004 = this.getContentYMiddle();
+            Objects.requireNonNull(LanguageSelectScreen.this.font);
+            var1.drawCenteredString(var10001, (Component)var10002, var10003, var10004 - 9 / 2, -1);
+         }
+
+         public boolean keyPressed(KeyEvent var1) {
+            if (var1.isSelection()) {
+               this.select();
+               LanguageSelectScreen.this.onDone();
+               return true;
+            } else {
+               return super.keyPressed(var1);
+            }
+         }
+
+         public boolean mouseClicked(MouseButtonEvent var1, boolean var2) {
+            this.select();
+            if (var2) {
+               LanguageSelectScreen.this.onDone();
+            }
+
+            return super.mouseClicked(var1, var2);
+         }
+
+         private void select() {
+            LanguageSelectionList.this.setSelected(this);
+         }
+
+         public Component getNarration() {
+            return Component.translatable("narrator.select", this.language);
+         }
+      }
+   }
+}
