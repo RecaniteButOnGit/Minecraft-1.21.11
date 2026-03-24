@@ -1,0 +1,132 @@
+package net.minecraft.world.entity.ai.util;
+
+import com.google.common.annotations.VisibleForTesting;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
+
+public class RandomPos {
+   private static final int RANDOM_POS_ATTEMPTS = 10;
+
+   public RandomPos() {
+      super();
+   }
+
+   public static BlockPos generateRandomDirection(RandomSource var0, int var1, int var2) {
+      int var3 = var0.nextInt(2 * var1 + 1) - var1;
+      int var4 = var0.nextInt(2 * var2 + 1) - var2;
+      int var5 = var0.nextInt(2 * var1 + 1) - var1;
+      return new BlockPos(var3, var4, var5);
+   }
+
+   @Nullable
+   public static BlockPos generateRandomDirectionWithinRadians(RandomSource var0, double var1, double var3, int var5, int var6, double var7, double var9, double var11) {
+      double var13 = Mth.atan2(var9, var7) - 1.5707963705062866D;
+      double var15 = var13 + (double)(2.0F * var0.nextFloat() - 1.0F) * var11;
+      double var17 = Mth.lerp(Math.sqrt(var0.nextDouble()), var1, var3) * (double)Mth.SQRT_OF_TWO;
+      double var19 = -var17 * Math.sin(var15);
+      double var21 = var17 * Math.cos(var15);
+      if (!(Math.abs(var19) > var3) && !(Math.abs(var21) > var3)) {
+         int var23 = var0.nextInt(2 * var5 + 1) - var5 + var6;
+         return BlockPos.containing(var19, (double)var23, var21);
+      } else {
+         return null;
+      }
+   }
+
+   @VisibleForTesting
+   public static BlockPos moveUpOutOfSolid(BlockPos var0, int var1, Predicate<BlockPos> var2) {
+      if (!var2.test(var0)) {
+         return var0;
+      } else {
+         BlockPos.MutableBlockPos var3 = var0.mutable().move(Direction.UP);
+
+         while(var3.getY() <= var1 && var2.test(var3)) {
+            var3.move(Direction.UP);
+         }
+
+         return var3.immutable();
+      }
+   }
+
+   @VisibleForTesting
+   public static BlockPos moveUpToAboveSolid(BlockPos var0, int var1, int var2, Predicate<BlockPos> var3) {
+      if (var1 < 0) {
+         throw new IllegalArgumentException("aboveSolidAmount was " + var1 + ", expected >= 0");
+      } else if (!var3.test(var0)) {
+         return var0;
+      } else {
+         BlockPos.MutableBlockPos var4 = var0.mutable().move(Direction.UP);
+
+         while(var4.getY() <= var2 && var3.test(var4)) {
+            var4.move(Direction.UP);
+         }
+
+         int var5 = var4.getY();
+
+         while(var4.getY() <= var2 && var4.getY() - var5 < var1) {
+            var4.move(Direction.UP);
+            if (var3.test(var4)) {
+               var4.move(Direction.DOWN);
+               break;
+            }
+         }
+
+         return var4.immutable();
+      }
+   }
+
+   @Nullable
+   public static Vec3 generateRandomPos(PathfinderMob var0, Supplier<BlockPos> var1) {
+      Objects.requireNonNull(var0);
+      return generateRandomPos(var1, var0::getWalkTargetValue);
+   }
+
+   @Nullable
+   public static Vec3 generateRandomPos(Supplier<BlockPos> var0, ToDoubleFunction<BlockPos> var1) {
+      double var2 = -1.0D / 0.0;
+      BlockPos var4 = null;
+
+      for(int var5 = 0; var5 < 10; ++var5) {
+         BlockPos var6 = (BlockPos)var0.get();
+         if (var6 != null) {
+            double var7 = var1.applyAsDouble(var6);
+            if (var7 > var2) {
+               var2 = var7;
+               var4 = var6;
+            }
+         }
+      }
+
+      return var4 != null ? Vec3.atBottomCenterOf(var4) : null;
+   }
+
+   public static BlockPos generateRandomPosTowardDirection(PathfinderMob var0, double var1, RandomSource var3, BlockPos var4) {
+      double var5 = (double)var4.getX();
+      double var7 = (double)var4.getZ();
+      if (var0.hasHome() && var1 > 1.0D) {
+         BlockPos var9 = var0.getHomePosition();
+         if (var0.getX() > (double)var9.getX()) {
+            var5 -= var3.nextDouble() * var1 / 2.0D;
+         } else {
+            var5 += var3.nextDouble() * var1 / 2.0D;
+         }
+
+         if (var0.getZ() > (double)var9.getZ()) {
+            var7 -= var3.nextDouble() * var1 / 2.0D;
+         } else {
+            var7 += var3.nextDouble() * var1 / 2.0D;
+         }
+      }
+
+      return BlockPos.containing(var5 + var0.getX(), (double)var4.getY() + var0.getY(), var7 + var0.getZ());
+   }
+}
